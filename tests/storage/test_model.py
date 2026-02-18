@@ -23,7 +23,7 @@ class TestModelStorage(unittest.TestCase):
 		retrieved_model = storage.get(self.model_path)
 		self.assertIsNone(retrieved_model)
 
-	@patch('ml_communication.storage.model.pickle')
+	@patch('src.ml_communication.storage.model.pickle')
 	def test_file_system_model_storage(self, mock_pickle):
 		mock_pickle.load.return_value = self.model
 
