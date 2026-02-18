@@ -1,19 +1,20 @@
-from typing import Any
+from pathlib import Path
 from unittest.mock import patch
-from src.loader import InMemoryModelStorage
+from app.src.loader import InMemoryModelStorage
 
-@patch("src.main.pickle")
+@patch("app.src.main.pickle")
 def test_prediction(mock_pickle, client):
 
+    model_path = Path(__file__).resolve().parent / "models" / "fake_model.txt"
 
-    with patch("src.main.storage", InMemoryModelStorage()):
+    with patch("app.src.main.storage", InMemoryModelStorage()):
+        with model_path.open("rb") as model_file:
+            upload_response = client.post(
+                "/model/upload",
+                files={"file": ("model.pkl", model_file)}
+            )
 
-        upload_response = client.post(
-            "/model/upload",
-            files={"file": ("model.pkl", open("tests/models/fake_model.txt", "rb"))}
-        )
-
-        key = upload_response.json()["key"]
+            key = upload_response.json()["key"]
 
         response = client.post(
             "/model/predict",

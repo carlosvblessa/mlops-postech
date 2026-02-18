@@ -1,6 +1,11 @@
 import json
 import pickle
-from src.loader import storage
+
+try:
+    from .loader import storage
+except ImportError:
+    from loader import storage
+
 from pydantic import BaseModel
 from fastapi import FastAPI, Response, UploadFile
 
@@ -58,3 +63,7 @@ async def model_upload(params: ModelParams):
 @app.get("/")
 async def root():
     return {"message": "Healt Check"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
