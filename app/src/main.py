@@ -30,7 +30,7 @@ async def model_upload(file: UploadFile):
         return  Response(content=json.dumps(response), media_type="application/json", status_code=500)
         
 @app.post("/model/predict")
-async def model_upload(params: ModelParams):
+async def model_predict(params: ModelParams):
     model =  storage.get(key=params.id)
    
     if model:

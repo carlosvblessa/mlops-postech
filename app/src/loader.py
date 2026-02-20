@@ -1,3 +1,3 @@
-from ml_communication.storage import FileSystemModelStorage, InMemoryModelStorage
+from ml_communication.storage import FileSystemModelStorage
 
 storage = FileSystemModelStorage()
