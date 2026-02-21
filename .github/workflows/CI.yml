@@ -1,12 +1,9 @@
 name: Primeiro Workflow
 
 on:
-  create:
-    branches: 
-      - feature/*
   push:
     branches:
-      - feature/*
+      - 'feature/*'
 
 jobs:
   CI:

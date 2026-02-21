@@ -11,7 +11,7 @@ jobs:
     # Dessa forma, a execução do CD depende do CI ser executado com sucesso.
     runs-on: ubuntu-latest
     outputs:
-      NEW_VERSION: ${{ steps.tag_increase.outputs.NEW_VERSION }}
+      new_version: ${{ steps.tag_increase.outputs.new_version }}
 
     steps:
 
@@ -24,25 +24,35 @@ jobs:
       - name: Incrementa versão
         id: tag_increase
         run: |
-          last_commit=$(git log -1 --no-merges --pretty=%B)
-          echo $last_commit
+          set -euo pipefail
+          last_commit=$(git log -1 --no-merges --pretty=%s)
+          echo "Last non-merge commit: $last_commit"
+          last_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Last tag: $last_tag"
+
           if [[ $last_commit == patch* ]]; then
-              NEW_VERSION=`git describe --tags --abbrev=0 | awk -F. '{OFS="."; $3+=1; print $0}'`
+              NEW_VERSION=$(echo "$last_tag" | awk -F. '{OFS="."; $3+=1; print $0}')
           elif [[ $last_commit == minor* ]]; then
-              NEW_VERSION=`git describe --tags --abbrev=0 | awk -F. '{OFS="."; $2+=1; $3=0; print $0}'`
+              NEW_VERSION=$(echo "$last_tag" | awk -F. '{OFS="."; $2+=1; $3=0; print $0}')
           elif [[ $last_commit == major* ]]; then
-              NEW_VERSION=`git describe --tags --abbrev=0 | awk -F. '{OFS="."; sub(/^v/, "", $1); $1+=1; $2=0; $3=0; print "v"$0}'`
+              NEW_VERSION=$(echo "$last_tag" | awk -F. '{OFS="."; sub(/^v/, "", $1); $1+=1; $2=0; $3=0; print "v"$0}')
           else
               echo "Não especifica versao, logo não executa código"
               exit 1
           fi
 
-          if ![[ $NEW_VERSION == v* ]]; then
+          if [[ -z "$NEW_VERSION" ]]; then
+              echo "Não foi possível calcular NEW_VERSION"
+              exit 1
+          fi
+
+          if ! [[ $NEW_VERSION == v* ]]; then
               echo "Precisa comecar com v a versão"
               exit 1
           fi
 
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Computed version: $NEW_VERSION"
 
   publish:
     needs: [increase_version]
@@ -68,10 +78,16 @@ jobs:
       - name: Adiciona Tag
 
         run: |
+          NEW_VERSION="${{ needs.increase_version.outputs.new_version }}"
+          if [[ -z "$NEW_VERSION" ]]; then
+            echo "NEW_VERSION veio vazio do job increase_version"
+            exit 1
+          fi
+
           git config user.name "$(git log -n 1 --pretty=format:%an)"
           git config user.email "$(git log -n 1 --pretty=format:%ae)"
-          git tag -a "${{ needs.increase_version.outputs.NEW_VERSION }}" -m "change version"
-          git tag
+          git tag -a "$NEW_VERSION" -m "change version"
+          git tag --list "$NEW_VERSION"
 
 
       - name: Configurando Python
@@ -94,5 +110,5 @@ jobs:
 
       - name: Update package tag
         run: |
-          echo "${{ needs.increase_version.outputs.NEW_VERSION }}"
-          git push origin "${{ needs.increase_version.outputs.NEW_VERSION }}"
+          echo "${{ needs.increase_version.outputs.new_version }}"
+          git push origin "${{ needs.increase_version.outputs.new_version }}"
